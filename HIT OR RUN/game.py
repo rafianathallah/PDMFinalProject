@@ -16,10 +16,18 @@ click = False
 FPS = 60
 clock = pygame.time.Clock()
 
+
+
+def collide(object1, object2):
+    offset_x = object2.x - object1.x
+    offset_y = object2.y - object1.y
+    return object1.mask.overlap(object2.mask, (offset_x, offset_y)) is not None
+
 def game():
 
     run = True
     lost = True
+    cooldown_counter = clock.get_time()
 
     # function for detecting collision between overlapping objects
     def collide(object1, object2):
@@ -27,28 +35,30 @@ def game():
         offset_y = object2.y - object1.y
         return object1.mask.overlap(object2.mask, (offset_x, offset_y)) != None
 
-    #game variables that need to be reset each playthrough
+    # game variables that need to be reset each playthrough
     while run:
         clock.tick(FPS)
         if lost:
             gamescreens.game_over()
             lost = False
-            level = 0
+            level = 1
             score = 0
             coinscore = 0
             player = classes.Player(350, 650)
             hostiles = []
             coins = []
             wave_length = 4
+            minimum_coins = 8
+
 
         def draw_stats():
-            #setting background and fonts
+            # setting background and fonts
             window.blit(assets.background, (0, 0))
             main_font = pygame.font.SysFont("verdana", 25, 1)
             lost_font = pygame.font.SysFont("verdana", 45, 1)
 
             # displaying score and level on screen
-            score_text = main_font.render(f"Score: {score}", 1, (255, 255, 255))
+            score_text = main_font.render(f"Cars dodged: {score}", 1, (255, 255, 255))
             level_text = main_font.render(f"Level: {level}", 1, (255, 255, 255))
             coin_text = main_font.render(f"Coins: {coinscore}", 1, (255, 255, 255))
             window.blit(score_text, (10, 10))
@@ -75,15 +85,17 @@ def game():
 
         #spawning enemies in waves
         spawnxaxis = [120, 265, 395, 545]
+        cooldown_counter += clock.get_time()
 
         if len(hostiles) == 0:
-            level += 1
-            wave_length += 4
+
             for i in range(wave_length):
                 enemy = classes.Hostile(random.choice(spawnxaxis),random.randrange(-8000*level/5,-100), random.choice(["red", "green", "yellow"]))
-                #spawns enemies in a randomized set x axis and spawns them in a randomized y axis away from each other, to make it look like they are coming one by one
-                #-8000 is the maximum range enemies in the y-axis (off-screen) where can spawn and gets shorter by increasing level meaning they will spawn closer to each other
+                    #spawns enemies in a randomized set x axis and spawns them in a randomized y axis away from each other
+            if cooldown_counter % 50 == 0:
                 hostiles.append(enemy)
+
+        print(cooldown_counter)
 
         if len(coins) == 0:
             wave_length += 2
@@ -91,7 +103,13 @@ def game():
                 coin = classes.Coin(random.choice(spawnxaxis),random.randrange(-10000*level/5,-100), random.choice(["bronze", "silver", "gold"]))
                 coins.append(coin)
 
-        #showing win screen when passing level 10
+        #puts a minimum amount of coins needed to collect to advance to the next level
+        if coinscore >= minimum_coins:
+            level += 1
+            minimum_coins += 8
+            wave_length += 4
+
+        #showing win scresen when passing level 10
         if level == 11:
             gamescreens.win_screen()
 
@@ -134,6 +152,8 @@ def game():
                 coins.remove(coin)
                 coinscore += 1
                 assets.coin_pickup.play()
+
+
 
 
 game()
